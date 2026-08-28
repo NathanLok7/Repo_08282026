@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto"
 
-import { del, put } from "@vercel/blob"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
+import { eliminarArchivo, subirArchivo } from "@/lib/blob"
 import { insertarDocumento, obtenerClientePorRfc } from "@/lib/db"
 import { SESSION_COOKIE, verificarTokenSesion } from "@/lib/session"
 
@@ -37,13 +37,13 @@ export async function POST(request: Request) {
 
   const rutaStorage = `${rfc}/${randomUUID()}-${archivo.name}`
 
-  let blob
+  let archivoSubido
   try {
-    blob = await put(rutaStorage, archivo, {
-      access: "private",
-      contentType: archivo.type || "application/octet-stream",
-      addRandomSuffix: false,
-    })
+    archivoSubido = await subirArchivo(
+      rutaStorage,
+      archivo,
+      archivo.type || "application/octet-stream"
+    )
   } catch (error) {
     console.error(error)
     return NextResponse.json({ ok: false, error: "No se pudo subir el archivo." }, { status: 500 })
@@ -57,12 +57,12 @@ export async function POST(request: Request) {
       tipoMime: archivo.type || null,
       tamanoBytes: archivo.size,
       rutaStorage,
-      blobUrl: blob.url,
+      blobUrl: archivoSubido.url,
     })
     return NextResponse.json({ ok: true, documento })
   } catch (error) {
     console.error(error)
-    await del(blob.url)
+    await eliminarArchivo(rutaStorage, archivoSubido.url)
     return NextResponse.json(
       { ok: false, error: "No se pudo registrar el documento." },
       { status: 500 }

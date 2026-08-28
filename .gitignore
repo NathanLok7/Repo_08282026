@@ -35,3 +35,6 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# datos locales de desarrollo (LOCAL_DEV=true): sqlite + "blobs" en disco
+/.data/

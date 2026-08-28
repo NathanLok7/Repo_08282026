@@ -1,7 +1,7 @@
-import { del, get } from "@vercel/blob"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
+import { eliminarArchivo, leerArchivo } from "@/lib/blob"
 import { eliminarDocumento, obtenerDocumento } from "@/lib/db"
 import { SESSION_COOKIE, verificarTokenSesion } from "@/lib/session"
 
@@ -24,12 +24,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ ok: false, error: "Documento no encontrado." }, { status: 404 })
   }
 
-  const resultado = await get(documento.ruta_storage, { access: "private" })
-  if (!resultado || resultado.statusCode !== 200) {
+  const stream = await leerArchivo(documento.ruta_storage)
+  if (!stream) {
     return NextResponse.json({ ok: false, error: "No se pudo obtener el archivo." }, { status: 500 })
   }
 
-  return new NextResponse(resultado.stream, {
+  return new NextResponse(stream, {
     headers: {
       "Content-Type": documento.tipo_mime || "application/octet-stream",
       "Content-Disposition": `attachment; filename="${encodeURIComponent(documento.nombre_archivo)}"`,
@@ -52,7 +52,7 @@ export async function DELETE(
     return NextResponse.json({ ok: false, error: "Documento no encontrado." }, { status: 404 })
   }
 
-  await del(documento.blob_url)
+  await eliminarArchivo(documento.ruta_storage, documento.blob_url)
   await eliminarDocumento(id)
 
   return NextResponse.json({ ok: true })
